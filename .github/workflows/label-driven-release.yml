@@ -95,7 +95,7 @@ jobs:
 
           # Create the Markdown H1 title for the changelog file
           CHANGELOG_TITLE_MARKDOWN="# $FULL_RELEASE_TITLE"
-          CHANGELOG_ENTRY="\n$CHANGELOG_TITLE_MARKDOWN\n\n$CHANGELOG_BODY\n----"
+          CHANGELOG_ENTRY="\n$CHANGELOG_TITLE_MARKDOWN\n\n$CHANGELOG_BODY\n"
 
           # Use a temporary file to safely prepend the new content
           if [[ -f CHANGELOG.md ]]; then
