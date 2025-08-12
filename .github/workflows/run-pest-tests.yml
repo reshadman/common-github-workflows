@@ -1,0 +1,79 @@
+name: Run Pest Tests
+
+on:
+  workflow_call:
+    inputs:
+      php-versions:
+        description: 'JSON array of PHP versions to test'
+        required: false
+        type: string
+        default: '["8.4"]'
+      laravel-versions:
+        description: 'JSON array of Laravel versions to test'
+        required: false
+        type: string
+        default: '["12.*"]'
+      operating-systems:
+        description: 'JSON array of operating systems to test on'
+        required: false
+        type: string
+        default: '["ubuntu-latest", "windows-latest"]'
+      stability-levels:
+        description: 'JSON array of stability levels'
+        required: false
+        type: string
+        default: '["prefer-lowest", "prefer-stable"]'
+      testbench-version:
+        description: 'Testbench version to use'
+        required: false
+        type: string
+        default: '10.*'
+      timeout-minutes:
+        description: 'Timeout for tests in minutes'
+        required: false
+        type: number
+        default: 5
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: ${{ fromJson(inputs.operating-systems) }}
+        php: ${{ fromJson(inputs.php-versions) }}
+        laravel: ${{ fromJson(inputs.laravel-versions) }}
+        stability: ${{ fromJson(inputs.stability-levels) }}
+        include:
+          - laravel: 12.*
+            testbench: ${{ inputs.testbench-version }}
+
+    name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
+          coverage: none
+
+      - name: Setup problem matchers
+        run: |
+          echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+          echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+      - name: Install dependencies
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+
+      - name: List Installed Dependencies
+        run: composer show -D
+
+      - name: Execute tests
+        run: vendor/bin/pest --ci

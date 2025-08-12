@@ -1,0 +1,81 @@
+name: Fix code style issues
+
+on:
+  workflow_call:
+    inputs:
+      timeout-minutes:
+        description: "Timeout for code style fixing in minutes"
+        required: false
+        type: number
+        default: 5
+      commit-message:
+        description: "Commit message for style fixes"
+        required: false
+        type: string
+        default: "Fix code styling"
+      fix-blade:
+        description: "Enable blade code style fixing"
+        required: false
+        type: boolean
+        default: true
+      blade-paths:
+        description: "A space-separated list of paths to look for blade files"
+        required: false
+        type: string
+        default: "resources/views/**/*.blade.php"
+      fix-js-css:
+        description: "Enable JS/CSS code style fixing"
+        required: false
+        type: boolean
+        default: true
+      js-css-paths:
+        description: "A space-separated list of paths to look for JS and CSS files"
+        required: false
+        type: string
+        default: "resources/css/**/*.css resources/js/**/*.js"
+      fix-php:
+        description: "Enable PHP code style fixing"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: auto-commit-${{ github.ref }}
+
+jobs:
+  code-styling:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Fix Blade code style issues
+        if: ${{ inputs.fix-blade }}
+        run: |
+          if [ ! -f .bladeformatterrc ]; then
+            echo "Error: .bladeformatterrc file not found."
+            exit 1
+          fi
+          npm install -g blade-formatter
+          blade-formatter --write ${{ inputs.blade-paths }}
+
+      - name: Prettify code
+        if: ${{ inputs.fix-js-css }}
+        uses: creyD/prettier_action@v4.6
+        with:
+          prettier_options: "--write ${{ inputs.js-css-paths }}"
+          no_commit: true
+
+      - name: Fix PHP code style issues
+        uses: aglipanci/laravel-pint-action@2.6
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: ${{ inputs.commit-message }}
+          branch: ${{ github.head_ref || github.ref_name }}
