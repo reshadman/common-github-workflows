@@ -28,7 +28,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install Dependencies
-        run: npm i
+        run: npm install
 
       - name: Synchronize Version from Git Tag
         run: npm version ${{ github.ref_name }} --no-git-tag-version --allow-same-version
